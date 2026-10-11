@@ -1,0 +1,230 @@
+---
+title: "arimax"
+author: "Salsa Rifda Erira"
+date: "2025-02-01"
+output: html_document
+---
+```{r}
+
+
+data <- read_excel("C://Users//DELL//Downloads//Data - Semifinal Sesi 2 ONS ANAVA #19.xlsx", sheet = "fix") 
+head(data)
+```
+```{r}
+str(data)
+```
+```{r}
+GGally::ggpairs(data[,c(2,5,6,7,8,9)])
+```
+```{r}
+GGally::ggpairs(data[,c(3,5,6,7,8,9)])
+```
+
+
+```{r}
+GGally::ggpairs(data[,c(3,5,6,7,8,9)])
+```
+```{r}
+dataA.ts <- ts(data$A.asset)
+plot.ts(dataA.ts, lty=1, xlab="Periode", ylab="ASSET A")
+```
+```{r}
+dataB.ts <- ts(data$B.asset)
+plot.ts(dataB.ts, lty=1, xlab="Periode", ylab="ASSET B")
+```
+```{r}
+dataA.ts <- ts(data$B.asset)
+plot.ts(dataB.ts, lty=1, xlab="Periode", ylab="ASSET C")
+```
+```{r}
+train <- data$A.asset[1:30]
+train.tsA <- ts(train)
+plot.ts(train.ts, lty=1, xlab="Periode", ylab="ASSET A")
+```
+
+```{r}
+train <- data$B.asset[1:30]
+train.tsB <- ts(train)
+plot.ts(train.ts, lty=1, xlab="Periode", ylab="ASSET B")
+```
+
+```{r}
+train <- data$C.asset[1:30]
+train.tsC <- ts(train)
+plot.ts(train.ts, lty=1, xlab="Periode", ylab="ASSET C")
+```
+```{r}
+test <- data$A.asset[-c(1:30)]
+test.tsA <-ts(test)
+plot.ts(test.ts, lty=1, xlab="Periode", ylab="ASSET A")
+```
+```{r}
+test <- data$B.asset[-c(1:30)]
+test.tsB <-ts(test)
+plot.ts(test.ts, lty=1, xlab="Periode", ylab="ASSET B")
+```
+```{r}
+test <- data$C.asset[-c(1:30)]
+test.tsC <-ts(test)
+plot.ts(test.ts, lty=1, xlab="Periode", ylab="ASSET C")
+```
+```{r}
+adf.test(train.tsA)
+adf.test(train.tsB)
+adf.test(train.tsC)
+```
+stationer persamaan A
+```{r}
+train.tsA.diff <- diff(train.tsA)
+adf.test(train.tsA.diff)
+```
+```{r}
+index <- seq(1:30)
+bc <- MASS::boxcox(train.tsA~index, lambda = seq(-2,4,by=0.01))
+```
+
+```{r}
+index <- seq(1:30)
+bc <- MASS::boxcox(train.tsB~index, lambda = seq(-2,4,by=0.01))
+```
+
+```{r}
+index <- seq(1:30)
+bc <- MASS::boxcox(train.tsC~index, lambda = seq(-2,4,by=0.01))
+```
+
+```{r}
+acf(train.tsA.diff)
+acf(train.tsB)
+acf(train.tsC)
+```
+```{r}
+pacf(train.tsA.diff)
+pacf(train.tsB)
+pacf(train.tsC)
+```
+model A
+ARIMA(0,1,2)
+Model B
+ARIMA(0,0,1)
+Model C
+ARIMA(1,0,2)
+
+```{r}
+library(forecast)
+best_modelA <- auto.arima(train.tsA.diff)
+summary(best_modelA)
+
+```
+```{r}
+best_modelB <- auto.arima(train.tsB)
+summary(best_modelB)
+```
+```{r}
+best_modelC <- auto.arima(train.tsC)
+summary(best_modelC)
+```
+```{r}
+x1 <- data$exchange_rate
+x2 <- data$gdp_growth
+x3 <- data$inflation_rate
+x4 <- data$trade_diff
+x5 <- data$unemployment_rate
+x <- cbind(x1,x2,x3,x4,x5)
+x.train <- ts(x[1:29,])
+x.test <- ts(x[-c(1:29),])
+```
+
+```{r}
+modelA1 <-Arima(train.tsA.diff, order = c(0,0,0), xreg = x.train, method = "ML")
+summary(modelA1)
+```
+```{r}
+lmtest::coeftest(modelA1)
+```
+
+
+```{r}
+modelA2 <-Arima(train.tsA.diff, order = c(0,0,1), xreg = x.train, method = "ML")
+summary(modelA2)
+```
+
+yang dipilih model ARIMA (0,1,1)
+
+```{r}
+lmtest::coeftest(modelA2)
+```
+```{r}
+x.train <- ts(x[1:30,])
+x.test <- ts(x[-c(1:30),])
+```
+
+```{r}
+modelB1 <-Arima(train.tsB, order = c(1,0,0), xreg = x.train, method = "ML")
+summary(modelB1)
+```
+```{r}
+lmtest::coeftest(modelB1)
+```
+```{r}
+modelC1 <-Arima(train.tsC, order = c(0,0,1), xreg = x.train, method = "ML")
+summary(modelC1)
+```
+```{r}
+lmtest::coeftest(modelC1)
+```
+```{r}
+sisaan<- modelA2$residuals
+par(mfrow=c(2,2))
+qqnorm(sisaan)
+qqline(sisaan, col = "blue", lwd = 2)
+plot(as.numeric(modelA2$fitted), as.numeric(sisaan), xlab="Fitted", ylab="Sisaan", main="Residuals vs Fitted");abline(h=0, col="red")
+acf(sisaan, lag.max = 20)
+plot(1:length(sisaan),sisaan,type='o', xlab="Order",
+     main="Residuals vs Order"); abline(h=0, col="red")
+```
+```{r}
+sisaan<- modelB1$residuals
+par(mfrow=c(2,2))
+qqnorm(sisaan)
+qqline(sisaan, col = "blue", lwd = 2)
+plot(as.numeric(modelB1$fitted), as.numeric(sisaan), xlab="Fitted", ylab="Sisaan", main="Residuals vs Fitted");abline(h=0, col="red")
+acf(sisaan, lag.max = 20)
+plot(1:length(sisaan),sisaan,type='o', xlab="Order",
+     main="Residuals vs Order"); abline(h=0, col="red")
+```
+```{r}
+sisaan<- modelC1$residuals
+par(mfrow=c(2,2))
+qqnorm(sisaan)
+qqline(sisaan, col = "blue", lwd = 2)
+plot(as.numeric(modelC1$fitted), as.numeric(sisaan), xlab="Fitted", ylab="Sisaan", main="Residuals vs Fitted");abline(h=0, col="red")
+acf(sisaan, lag.max = 20)
+plot(1:length(sisaan),sisaan,type='o', xlab="Order",
+     main="Residuals vs Order"); abline(h=0, col="red")
+```
+```{r}
+x.train <- ts(x[1:29,])
+x.test <- ts(x[-c(1:29),])
+```
+
+```{r}
+ramalan1<- forecast::forecast(modelA2, xreg=x.test, h = 20) 
+data.ramalan1 <- ramalan1$mean
+plot(ramalan1)
+```
+```{r}
+x.train <- ts(x[1:30,])
+x.test <- ts(x[-c(1:30),])
+```
+```{r}
+ramalan2<- forecast::forecast(modelB1, xreg=x.test, h =20) 
+data.ramalan2 <- ramalan2$mean
+plot(ramalan2)
+```
+```{r}
+```
+
+
+
+
